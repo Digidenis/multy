@@ -1,0 +1,35 @@
+import psycopg2
+import smtplib
+from psycopg2.extras import DictCursor
+conn = psycopg2.connect(dbname='pnppk', user='postgres',
+                        password='', host='localhost')
+
+cursor = conn.cursor()
+cursor.execute('SELECT asset_name,asset_id FROM assets')
+records = cursor.fetchall()
+print(type(records),records)
+
+my_file = open("some.txt", "w")
+my_file.write(str(records))
+my_file.close()
+cursor.close()  
+conn.close()
+
+
+
+email = 'digidenis@yandex.ru'
+password = 'digicom1972'
+
+server = smtplib.SMTP('smtp.yandex.ru', 587)
+server.ehlo() # Кстати, зачем это?
+server.starttls()
+server.login(email, password)
+
+dest_email = 'annikitina@list.ru'
+subject = 'Python test'
+email_text = ' this is test email from python apps'
+message = 'From: %s\nTo: %s\nSubject: %s\n\n%s' % (email, dest_email, subject, email_text)
+
+server.set_debuglevel(1) # Необязательно; так будут отображаться данные с сервера в консоли
+server.sendmail(email, dest_email, message)
+server.quit()
