@@ -14,9 +14,9 @@ for i in range (len(records)-1):
     a=records[i]
     assets[a[0]] = a[1]         #string
 
-time_from='2020-01-31 00:00:00 '
-time_to='2020-03-01 00:00:00 '
-cursor.execute("SELECT *  FROM alerts WHERE alert_dt > %s and alert_dt <  %s ", (time_from, time_to,))  #get alerts on specified dates
+date_from='2020-01-31 00:00:00 '
+date_to='2020-03-15 00:00:00 '
+cursor.execute("SELECT *  FROM alerts WHERE alert_dt > %s and alert_dt <  %s ", (date_from, date_to,))  #get alerts on specified dates
 records = cursor.fetchall()
 alerts={}
 for i in range (len(records)):
@@ -43,7 +43,7 @@ water_and_heat = ["<h2>Отчет по контролю водо потребл�
 water_leak = ["<h2>Отчет по протечкам воды</h2>"]
 control = ["<h2>Отчет по мпроблемам в управляемом оборудовании </h2>"]
 maintanence=["<h2>Отчет по техническому контролю</h2>"]
-fire=["<h2>Отчет по пожарногй охране </h2>"]
+fire=["<h2>Отчет по пожарной охране </h2>"]
 acsess = ["<h2>Отчет по контролю доступом></h2>"]
 network = ["<h2>Отчет по сетевым проблеммам</h2>"]
 print ("SENSORS=", sensors)
@@ -58,8 +58,8 @@ for i in range (len(alerts)):
     dev = sensors.get(sens)   # определяем id устройства
     asset_name = assets.get(relation.get(dev[2]))     # читаем имя ассета
     time_to = alerts.get(i)[2] + datetime.timedelta(seconds=0)
-    time_from = alerts.get(i)[2] - datetime.timedelta(seconds=2)
-    print("номер алерта", alerts.get(i)[0])
+    time_from = alerts.get(i)[2] - datetime.timedelta(seconds=30)
+
     cursor.execute("SELECT decimal_value,recieve_datetime,sensor_id FROM sensor_values WHERE sensor_id=%s AND recieve_datetime BETWEEN %s and %s", (sens, time_from, time_to))    #%s
     records = cursor.fetchone()
 
@@ -68,35 +68,35 @@ for i in range (len(alerts)):
 
     else:
         value = ("отсутствуют в БД")
-    new_line="Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ "   дата и время="+ str(alerts.get(i)[2])+ " <br>"
-    print(type(new_line))
-    if relation.get(dev[2]) == 35:  #
-        electro.append(new_line)
-    elif relation.get(dev[2]) == 36:
-        water_and_heat.append(new_line)
-    elif relation.get(dev[2]) == 37:
-        water_leak.append(new_line)
-    elif relation.get(dev[2]) == 38:
-        control.append(new_line)
-    elif relation.get(dev[2]) == 39:
-        maintanence.append(new_line)
-    elif relation.get(dev[2]) == 42:
-        fire.append(new_line)
-    elif relation.get(dev[2]) == 43:
-        acsess.append(new_line)
-    else:
-        m_climat.append(new_line)
+        print("нет значения в бд")
+    #new_line="Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ "   дата и время="+ str(alerts.get(i)[2])+ " <br>"
 
-print(m_climat)
-print(acsess)
-print(fire)
-cursor.close()  
+    if relation.get(dev[2]) == 35:  #
+        electro.append("Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ ",   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    elif relation.get(dev[2]) == 36:
+        water_and_heat.append("Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ ",   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    elif relation.get(dev[2]) == 37:
+        water_leak.append("Обнаружена "+ str(dev[1])+ " на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ " ,  дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    elif relation.get(dev[2]) == 38:
+        control.append("Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ ",   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    elif relation.get(dev[2]) == 39:
+        maintanence.append("Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ "   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    elif relation.get(dev[2]) == 42:
+        fire.append("Сработка <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ ",   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    elif relation.get(dev[2]) == 43:
+        if value==1:
+            print(value,type(value))
+            value="<strong>открытие двери</strong>     "
+        acsess.append("Сработка <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ ",   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+    else:
+        m_climat.append("Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение=<strong>"+ str(value)+ "</strong>,   дата и время="+ str(alerts.get(i)[2])+ " <br>")
+cursor.close()
 conn.close()
 
-filename="1.html"
+filename=datetime.datetime.now().strftime("отчет %d-%m-%Y.html")
 f = open(filename, 'w')
 f.write(' <!DOCTYPE html><html><head><title>Title of the document</title></head> <body>')
-f.write('<h1>Отчет по событиям за период с ' + str(time_from) + 'по '+ str(time_to) + '<br></h1>')
+f.write('<h1>Отчет по событиям за период с ' + str(date_from) + 'по '+ str(date_to) + '<br></h1>')
 if len(m_climat)>1:
 
     for index in m_climat:
@@ -141,9 +141,9 @@ else:
 f.write('</body>')
 f.write('</html>')
 f.close()
-f=open("1.html")
+f=open(filename)
 
-login = 'iot@quantek.ru'
+login = 'iot@quantek.rur'
 password = 'SzWuTJVP9N'
 
 s= smtplib.SMTP('smtp.quantek.ru', 25)
@@ -165,4 +165,6 @@ try:
     s.sendmail(msg['From'], recipients_emails, msg.as_string())
 finally:
     s.quit()
+
+
 
