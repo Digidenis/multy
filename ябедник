@@ -1,0 +1,168 @@
+import psycopg2
+import smtplib
+import datetime
+from email.mime.text import MIMEText
+from email.header    import Header
+conn = psycopg2.connect(dbname='pnppk', user='postgres',
+                        password='', host='localhost')
+
+cursor = conn.cursor()
+cursor.execute('SELECT asset_id,asset_name FROM assets ')   # get assets name
+records = cursor.fetchall()
+assets={}
+for i in range (len(records)-1):
+    a=records[i]
+    assets[a[0]] = a[1]         #string
+
+time_from='2020-01-31 00:00:00 '
+time_to='2020-03-01 00:00:00 '
+cursor.execute("SELECT *  FROM alerts WHERE alert_dt > %s and alert_dt <  %s ", (time_from, time_to,))  #get alerts on specified dates
+records = cursor.fetchall()
+alerts={}
+for i in range (len(records)):
+    a=records[i]
+    alerts[i] = a    #tuple
+
+cursor.execute("SELECT asset_id, device_id  FROM asset_device_relations")     #get device-sensor relation  dev:
+records = cursor.fetchall()
+relation={}
+for i in range (len(records)):
+    a=records[i]
+    relation[a[1]] = a[0]
+
+
+cursor.execute("SELECT sensors.id, sensor_name, sensors.device_id, devices.device_name FROM sensors LEFT JOIN devices ON sensors.device_id=devices.id ")   # get sensor
+records = cursor.fetchall()
+sensors={}
+for i in range (len(records)):
+    a=records[i]
+    sensors[a[0]] = a    #tuple
+m_climat = ["<h2>Отчет по микроклимату </h2>"]
+electro =["<h2>Отчет по учету электроэнергии </h2>"]
+water_and_heat = ["<h2>Отчет по контролю водо потребления и отопления</h2> "]
+water_leak = ["<h2>Отчет по протечкам воды</h2>"]
+control = ["<h2>Отчет по мпроблемам в управляемом оборудовании </h2>"]
+maintanence=["<h2>Отчет по техническому контролю</h2>"]
+fire=["<h2>Отчет по пожарногй охране </h2>"]
+acsess = ["<h2>Отчет по контролю доступом></h2>"]
+network = ["<h2>Отчет по сетевым проблеммам</h2>"]
+print ("SENSORS=", sensors)
+#print ("RELATION=", relation)
+# print("ASSETS=", assets)
+print("ALERTS=id,sensor,dt,,message",alerts)
+
+for i in range (len(alerts)):
+
+    
+    sens = alerts.get(i)[1]   # вычитываем какой это сенсор из алерта
+    dev = sensors.get(sens)   # определяем id устройства
+    asset_name = assets.get(relation.get(dev[2]))     # читаем имя ассета
+    time_to = alerts.get(i)[2] + datetime.timedelta(seconds=0)
+    time_from = alerts.get(i)[2] - datetime.timedelta(seconds=2)
+    print("номер алерта", alerts.get(i)[0])
+    cursor.execute("SELECT decimal_value,recieve_datetime,sensor_id FROM sensor_values WHERE sensor_id=%s AND recieve_datetime BETWEEN %s and %s", (sens, time_from, time_to))    #%s
+    records = cursor.fetchone()
+
+    if records != None:
+        value = (records[0])
+
+    else:
+        value = ("отсутствуют в БД")
+    new_line="Тревога по параметру <"+ str(dev[1])+ "> на датчике "+str( dev[3])+ '/'+ asset_name+'<br>' + alerts.get(i)[4]+ "   значение="+ str(value)+ "   дата и время="+ str(alerts.get(i)[2])+ " <br>"
+    print(type(new_line))
+    if relation.get(dev[2]) == 35:  #
+        electro.append(new_line)
+    elif relation.get(dev[2]) == 36:
+        water_and_heat.append(new_line)
+    elif relation.get(dev[2]) == 37:
+        water_leak.append(new_line)
+    elif relation.get(dev[2]) == 38:
+        control.append(new_line)
+    elif relation.get(dev[2]) == 39:
+        maintanence.append(new_line)
+    elif relation.get(dev[2]) == 42:
+        fire.append(new_line)
+    elif relation.get(dev[2]) == 43:
+        acsess.append(new_line)
+    else:
+        m_climat.append(new_line)
+
+print(m_climat)
+print(acsess)
+print(fire)
+cursor.close()  
+conn.close()
+
+filename="1.html"
+f = open(filename, 'w')
+f.write(' <!DOCTYPE html><html><head><title>Title of the document</title></head> <body>')
+f.write('<h1>Отчет по событиям за период с ' + str(time_from) + 'по '+ str(time_to) + '<br></h1>')
+if len(m_climat)>1:
+
+    for index in m_climat:
+        f.write(index + '<br>')
+else:
+    f.write('Аварий и превышений не обнаружено <br>')
+
+if len(electro)>1:
+    for index in electro:
+        f.write(index + '<br>')
+else:
+    f.write(electro[0]+ '<br>')
+    f.write('Аварий и превышений в электрообеспечении не обнаружено <br>')
+
+if len(water_and_heat)>1:
+    for index in water_and_heat:
+        f.write(index + '<br>')
+else:
+    f.write(water_and_heat[0]+ '<br>')
+    f.write ('Проблем с водоснабжением и отоплением не обнаружено <br>')
+
+if len(water_leak)>1:
+    for index in water_leak:
+        f.write (index + '<br>')
+else:
+    f.write(water_leak[0]+ '<br>')
+    f.write('Протечек воды обнаружено <br>')
+
+if len(fire) > 1:
+    for index in fire:
+        f.write(index + '<br>')
+else:
+    f.write(fire[0] + '<br>')
+    f.write('Пожарные датчики не срабатывали <br>')
+
+if len(acsess) > 1:
+    for index in acsess:
+        f.write(index + '<br>')
+else:
+    f.write(acsess[0] + '<br>')
+    f.write('Охранные датчики не срабатывали <br>')
+f.write('</body>')
+f.write('</html>')
+f.close()
+f=open("1.html")
+
+login = 'iot@quantek.ru'
+password = 'SzWuTJVP9N'
+
+s= smtplib.SMTP('smtp.quantek.ru', 25)
+
+
+
+recipients_emails = ["digidenis@yandex.ru",]
+
+msg = MIMEText(f.read(), 'html', 'utf-8')
+msg['Subject'] = Header('subject…', 'utf-8')
+msg['From'] = login
+msg['To'] = ", ".join(recipients_emails)
+
+
+s.set_debuglevel(1)
+try:
+    s.starttls()
+    s.login(login, password)
+    s.sendmail(msg['From'], recipients_emails, msg.as_string())
+finally:
+    s.quit()
+
