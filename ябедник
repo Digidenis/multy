@@ -144,7 +144,7 @@ f.close()
 f=open(filename)
 
 login = 'iot@quantek.rur'
-password = 'SzWuTJVP9N'
+password = '*********'
 
 s= smtplib.SMTP('smtp.quantek.ru', 25)
 
